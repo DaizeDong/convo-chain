@@ -59,8 +59,9 @@ jobs:
       # like a suite that passes. Raise this deliberately when tests are added; never lower it to
       # make a red build green.
       #
-      # 162 is the count collected locally at 0.1.0; it stays only if the first green run on this
-      # runner collects the same number. Raise it from a green run's own output.
+      # 162 is an observation, not a guess: the first green run on this runner (2026-09-27, run
+      # 36306380973) collected 162 on both Python 3.11 and 3.13, the same as the local count.
+      # Raise it from a green run's own output.
       - name: The suite must not have evaporated
         run: |
           $n = (python -B -m pytest tests/ -q -p no:cacheprovider --collect-only 2>$null | Select-String '::' | Measure-Object).Count
