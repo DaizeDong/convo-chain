@@ -1,0 +1,68 @@
+name: tests
+
+# WINDOWS first, because that is where the one real consumer (task-console) runs and where the
+# path rules this library cares about actually bite: directory junctions, case-folded paths,
+# hard links for the exclusive-create fork, and a console code page that is not UTF-8.
+# Python 3.11 is the interpreter of the runtime that ships this wheel; 3.13 is the newest one the
+# operator's machine carries, so a regression on either end shows up here first.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  suite:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive        # an empty guards/ is an UNGUARDED repo, not a clean one
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: python -m pip install --quiet pytest
+
+      # -B disables bytecode caching. A stale .pyc can outlive the source it came from when mtime
+      # seconds and size both happen to be unchanged, and a suite that certifies bytecode from a
+      # reverted mutant is a suite that certifies nothing.
+      - name: Acceptance suite
+        run: |
+          if (-not (Test-Path tests)) { Write-Error "the test suite is MISSING -- an absent suite is not a passing suite"; exit 1 }
+          python -B -m pytest tests/ -q -p no:cacheprovider
+
+      # The wheel is what task-console installs, so build it and prove the console script and the
+      # package import from the INSTALLED copy, outside the source tree.
+      - name: Wheel builds and installs
+        run: |
+          python -m pip install --quiet build
+          python -m build --wheel --outdir dist .
+          $whl = Get-ChildItem dist/*.whl | Select-Object -First 1
+          if ($whl.Name -notmatch '^convo_chain-0\.1\.0-py3-none-any\.whl$') { Write-Error "unexpected wheel name $($whl.Name)"; exit 1 }
+          python -m pip install --quiet $whl.FullName
+          Push-Location $env:RUNNER_TEMP
+          python -B -c "import convo_chain, sys; assert 'site-packages' in convo_chain.__file__, convo_chain.__file__; print(convo_chain.__version__)"
+          convo-chain --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          Pop-Location
+
+      # Guards against the suite quietly shrinking to nothing, which would otherwise look exactly
+      # like a suite that passes. Raise this deliberately when tests are added; never lower it to
+      # make a red build green.
+      #
+      # 162 is the count collected locally at 0.1.0; it stays only if the first green run on this
+      # runner collects the same number. Raise it from a green run's own output.
+      - name: The suite must not have evaporated
+        run: |
+          $n = (python -B -m pytest tests/ -q -p no:cacheprovider --collect-only 2>$null | Select-String '::' | Measure-Object).Count
+          Write-Host "collected $n tests"
+          if ($n -lt 162) { Write-Error "only $n tests collected, expected at least 162 -- tests were removed or collection broke"; exit 1 }
