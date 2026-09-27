@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "convo-chain"
+version = "0.1.0"
+description = "Rebuild, export and fork the conversation a Claude Code session transcript actually held"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "DaizeDong" }]
+keywords = ["claude-code", "transcript", "jsonl", "conversation", "fork"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/DaizeDong/convo-chain"
+
+[project.scripts]
+convo-chain = "convo_chain.cli:main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["convo_chain", "convo_chain.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

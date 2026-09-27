@@ -1,0 +1,47 @@
+# --- conversation transcripts: NEVER commit (this tool reads and writes real ones) ---
+# Ignored EVERYWHERE, tests included. The suite builds every transcript inside pytest's tmp_path,
+# so no committed .jsonl is needed; allowing one under tests/ would only open a place where a
+# pasted real transcript could land. The guard's RUN_SHAPES does not yet recognise the transcript
+# shape (see .dataclass.json _armed), so this line is the stop-gap, not the control.
+*.jsonl
+*.jsonl.gz
+.fork-*.tmp
+exports/
+
+# --- secrets / DB: NEVER commit ---
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+config.json
+*.credentials.json
+.credentials.json
+*credentials*
+secrets/
+*.token
+.env
+
+# --- python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+.venv/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# --- self-evolve sandbox artefacts ---
+.sie/
+
+# --- build/iteration metainfo ---
+PROGRESS.md
+scratchpad/
+*.log
