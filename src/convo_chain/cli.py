@@ -18,6 +18,9 @@ Exit codes are part of the contract, so a script can branch without parsing pros
     2  usage error (argparse), message on stderr
     3  not checked: no usable root. chain/node print their {"available": false, ...} object,
        export/fork print the refusal with code "unavailable"
+    4  internal failure: {"error": {"code": "internal", "message": <exception class name>}} on
+       stdout. Only the class name is printed, never the exception text, because that text can
+       carry transcript content or paths. This is a bug or an unreadable file, not a refusal.
 
 This CLI is for standalone and agent use. It builds the index from scratch on every call, because
 the cache lives in the process; a long-lived caller should import the library instead.
@@ -37,7 +40,7 @@ from .errors import ConvoChainError
 
 ENV_ROOT = "CONVO_CHAIN_ROOT"
 
-EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_UNAVAILABLE = 0, 1, 2, 3
+EXIT_OK, EXIT_REFUSED, EXIT_USAGE, EXIT_UNAVAILABLE, EXIT_INTERNAL = 0, 1, 2, 3, 4
 
 
 def _emit(obj) -> None:
@@ -120,7 +123,9 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv=None) -> int:
     args = _parser().parse_args(argv)
-    root = args.root if args.root else (os.environ.get(ENV_ROOT) or None)
+    # An explicit --root, even an empty one, is the caller's answer and is never replaced by the
+    # environment: `--root ""` must come out "not checked", not quietly read some other root.
+    root = args.root if args.root is not None else (os.environ.get(ENV_ROOT) or None)
     try:
         if args.cmd == "chain":
             res = chain(args.sid, leaf=args.leaf, sub=args.sub, root=root)
@@ -136,6 +141,9 @@ def main(argv=None) -> int:
             res = fork(args.sid, args.at, leaf=args.leaf, root=root)
     except ConvoChainError as e:
         return _refused(e)
+    except Exception as e:  # noqa: BLE001  the contract promises JSON on stdout for every outcome
+        _emit({"error": {"code": "internal", "message": type(e).__name__}})
+        return EXIT_INTERNAL
     _emit(res)
     if isinstance(res, dict) and res.get("available") is False:
         return EXIT_UNAVAILABLE

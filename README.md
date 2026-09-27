@@ -24,7 +24,7 @@ Two rules follow from "this reads real conversations". The library never guesses
 
 It is a pure Python library (no dependencies) plus a small CLI. It indexes a transcript by byte offsets, keeps only a slim record per line in memory, and reads full lines back on demand, so a transcript of several hundred megabytes costs one pass to index and very little to browse. A process keeps an LRU cache of the last three indexes, keyed on path, mtime and size.
 
-It is not a transcript viewer and it has no UI. The panel that draws the chain lives in [task-console](https://github.com/DaizeDong/task-console). It does not list sessions either; it answers "what did this one session hold".
+It is not a transcript viewer and it has no UI. The engine was extracted from a conversation chain panel being built for [task-console](https://github.com/DaizeDong/task-console), and that panel is its intended consumer. It does not list sessions either; it answers "what did this one session hold".
 
 ## Install
 
@@ -71,13 +71,13 @@ convo-chain fork   SID AT [--leaf U]                             [--root DIR]
 convo-chain --version
 ```
 
-Exit codes: `0` success, `1` refused (`{"error": {"code", "message"}}` on stdout), `2` usage error, `3` not checked (no usable root). `export --out` writes the Markdown to a file with exclusive create and refuses a target inside a git work tree, for the same reason `fork` does. `python -m convo_chain` works the same way.
+Exit codes: `0` success, `1` refused (`{"error": {"code", "message"}}` on stdout), `2` usage error, `3` not checked (no usable root), `4` internal failure (`{"error": {"code": "internal", "message": <exception class name>}}` on stdout, a bug or an unreadable file rather than a refusal). An explicit `--root`, even `--root ""`, is never replaced by `CONVO_CHAIN_ROOT`. `export --out` writes the Markdown to a file with exclusive create and refuses a target inside a git work tree, for the same reason `fork` does. `python -m convo_chain` works the same way.
 
 The CLI rebuilds the index on every call. A long lived caller should import the library so the cache survives between requests.
 
 ## How task-console consumes it
 
-task-console depends on `convo-chain` as a pinned library, the same standing as `fleet-guards` and `llmcall`, and imports it in process so the index cache lives in the console process. The console keeps everything that is about serving a browser: the four HTTP routes with their token, host and shape gates, the conversation chain panel and its UI tests, and the `TASK_CONSOLE_SESSIONS` setting, whose value it passes in as `root`. This repository owns the transcript semantics and nothing else, and it never reads a `TASK_CONSOLE_*` variable.
+This describes the task-console change that consumes it, which is not on task-console's published branches yet. task-console depends on `convo-chain` as a pinned library, the same standing as `fleet-guards` and `llmcall`, and imports it in process so the index cache lives in the console process. The console keeps everything that is about serving a browser: the four HTTP routes with their token, host and shape gates, the conversation chain panel and its UI tests, and the `TASK_CONSOLE_SESSIONS` setting, whose value it passes in as `root`. This repository owns the transcript semantics and nothing else, and it never reads a `TASK_CONSOLE_*` variable.
 
 ## Where the data lives
 

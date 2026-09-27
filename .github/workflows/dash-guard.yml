@@ -5,11 +5,9 @@
 # style, not security, which is why it comes from a different submodule than the scanner:
 # nothing here keeps an identifier out of a public history.
 #
-# Most of this repository's prose is Chinese, and 破折号 is ordinary Chinese punctuation that the
-# guard cannot tell apart from an em dash in English. That is a real constraint on the writing and
-# not an oversight: a gate argued with once per document is a gate that gets switched off. The
-# first scan after this file was added found 179 lines across 39 files, which is what a submodule
-# that was pinned but never wired to anything looks like.
+# README_CN.md and the code comments are Chinese, and 破折号 is ordinary Chinese punctuation that
+# the guard cannot tell apart from an em dash in English, so the Chinese prose here is written
+# without it too.
 name: dash-guard
 
 on:
