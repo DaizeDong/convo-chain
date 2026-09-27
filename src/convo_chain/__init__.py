@@ -7,7 +7,7 @@ Public API (everything else is private and may change):
     export_md(sid, to, frm=None, leaf=None, sub=None,
               include_tools=False, include_thinking=False, root=...)
                                                        a Markdown export of [frm, to]
-    fork(sid, at, leaf=None, root=...)                 write a NEW session file forked at `at`
+    fork(sid, at, leaf=None, sub=None, root=...)       write a NEW session file forked at `at`
     locate(sid, sub=None, root=...)                    resolve ids to a file under root
     shape(sid, sub=None, leaf=None, required=(), **nodes)
                                                        the id shape gate, no filesystem access

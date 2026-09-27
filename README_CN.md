@@ -24,7 +24,7 @@
 
 它是一个纯 Python 库(零依赖)加一个小 CLI。它按字节偏移给转录建索引,内存里每行只留一条瘦记录,要看哪一行再按偏移读回来。所以几百兆的转录,建索引走一遍,之后浏览几乎不花钱。进程里有一个 LRU 缓存,留最近三份索引,按路径、mtime 和大小做键。
 
-它不是转录查看器,没有界面。画这条链的面板在 [task-console](https://github.com/DaizeDong/task-console) 里。它也不列会话清单,它回答的是「这一场会话里到底有什么」。
+它不是转录查看器,没有界面。这套引擎是从正在给 [task-console](https://github.com/DaizeDong/task-console) 做的对话链面板里拆出来的,那个面板就是它预定的使用方。它也不列会话清单,它回答的是「这一场会话里到底有什么」。
 
 ## 安装
 
@@ -71,13 +71,13 @@ convo-chain fork   SID AT [--leaf U]                             [--root DIR]
 convo-chain --version
 ```
 
-退出码:`0` 成功,`1` 被拒(stdout 上是 `{"error": {"code", "message"}}`),`2` 用法错误,`3` 未检查(没有可用的根目录)。`export --out` 把 Markdown 独占创建写进文件,目标在 git 工作树里就拒绝,理由和 `fork` 一样。`python -m convo_chain` 用法相同。
+退出码:`0` 成功,`1` 被拒(stdout 上是 `{"error": {"code", "message"}}`),`2` 用法错误,`3` 未检查(没有可用的根目录),`4` 内部故障(stdout 上是 `{"error": {"code": "internal", "message": <异常类名>}}`,说明是程序缺陷或文件读不了,不是拒绝)。显式给了 `--root`,哪怕是 `--root ""`,也绝不会被 `CONVO_CHAIN_ROOT` 顶替。`export --out` 把 Markdown 独占创建写进文件,目标在 git 工作树里就拒绝,理由和 `fork` 一样。`python -m convo_chain` 用法相同。
 
 CLI 每次调用都重建索引。长期运行的调用方应该直接导入这个库,让缓存在请求之间留住。
 
 ## task-console 怎么用它
 
-task-console 把 `convo-chain` 当作钉住版本的库依赖,地位和 `fleet-guards`、`llmcall` 一样,并且在进程内导入,这样索引缓存活在控制台进程里。控制台留下的是一切跟「给浏览器服务」有关的东西:四条 HTTP 路由和它们的令牌、主机、形状闸,对话链面板和它的界面测试,以及 `TASK_CONSOLE_SESSIONS` 这个设置,它的值由控制台作为 `root` 传进来。这个仓只管转录语义,不管别的,也从不读任何 `TASK_CONSOLE_*` 变量。
+下面说的是 task-console 里接入它的那次改动,那次改动还没进 task-console 的公开分支。task-console 把 `convo-chain` 当作钉住版本的库依赖,地位和 `fleet-guards`、`llmcall` 一样,并且在进程内导入,这样索引缓存活在控制台进程里。控制台留下的是一切跟「给浏览器服务」有关的东西:四条 HTTP 路由和它们的令牌、主机、形状闸,对话链面板和它的界面测试,以及 `TASK_CONSOLE_SESSIONS` 这个设置,它的值由控制台作为 `root` 传进来。这个仓只管转录语义,不管别的,也从不读任何 `TASK_CONSOLE_*` 变量。
 
 ## 数据放在哪
 

@@ -59,11 +59,12 @@ jobs:
       # like a suite that passes. Raise this deliberately when tests are added; never lower it to
       # make a red build green.
       #
-      # 162 is an observation, not a guess: the first green run on this runner (2026-09-27, run
-      # 36306380973) collected 162 on both Python 3.11 and 3.13, the same as the local count.
-      # Raise it from a green run's own output.
+      # 162 was an observation, not a guess: the first green run on this runner (2026-09-27, run
+      # 36306380973) collected 162 on both Python 3.11 and 3.13, the same as the local count. Two
+      # CLI regression tests (empty --root, internal failure) raised the local count to 164, and
+      # the floor moved with them. Raise it from a green run's own output.
       - name: The suite must not have evaporated
         run: |
           $n = (python -B -m pytest tests/ -q -p no:cacheprovider --collect-only 2>$null | Select-String '::' | Measure-Object).Count
           Write-Host "collected $n tests"
-          if ($n -lt 162) { Write-Error "only $n tests collected, expected at least 162 -- tests were removed or collection broke"; exit 1 }
+          if ($n -lt 164) { Write-Error "only $n tests collected, expected at least 164 -- tests were removed or collection broke"; exit 1 }

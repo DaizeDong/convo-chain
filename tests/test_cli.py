@@ -101,6 +101,34 @@ def test_no_root_is_not_checked_exit_3(capsys):
     assert rc == 3 and out["error"]["code"] == "unavailable"
 
 
+def test_an_explicit_empty_root_is_not_replaced_by_the_environment(tmp_path, capsys,
+                                                                   monkeypatch):
+    # The environment names a perfectly good root. `--root ""` is still the caller's answer, and
+    # the answer is "no root": exit 3, not a quiet read of the environment's root.
+    _session(tmp_path)
+    monkeypatch.setenv(cli.ENV_ROOT, str(tmp_path))
+    rc, out = run(capsys, "chain", SID, "--root", "")
+    assert rc == 3 and out["available"] is False
+    rc, out = run(capsys, "fork", SID, U(2), "--root", "")
+    assert rc == 3 and out["error"]["code"] == "unavailable"
+    assert sorted(p.name for p in (tmp_path / "C--work-example-project").iterdir()) == [f"{SID}.jsonl"]
+
+
+def test_an_internal_failure_is_json_exit_4_not_a_bare_traceback(tmp_path, capsys):
+    # A subagent transcript that claims to be gzip but is not: reading it raises something that
+    # is not a refusal. The contract still owes JSON on stdout, with a code of its own so a script
+    # never mistakes a crash for a refusal, and it must not echo the file's bytes back.
+    f = _session(tmp_path)
+    sd = f.parent / SID / "subagents"
+    sd.mkdir(parents=True)
+    (sd / "agent-badgz.jsonl.gz").write_bytes(b"synthetic-not-gzip-marker " * 8)
+    rc, out = run(capsys, "chain", SID, "--sub", "badgz", "--root", str(tmp_path))
+    assert rc == cli.EXIT_INTERNAL == 4
+    assert out["error"]["code"] == "internal"
+    assert out["error"]["message"].isidentifier()          # an exception class name, nothing else
+    assert "synthetic-not-gzip-marker" not in json.dumps(out)
+
+
 @pytest.mark.parametrize("argv,code", [
     (["chain", "../etc"], "bad_id"),
     (["chain", SID, "--sub", "../x"], "bad_sub"),

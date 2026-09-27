@@ -6,10 +6,10 @@ All notable changes to this project are documented here (Keep a Changelog style)
 
 ### Added
 
-- **Initial extraction from task-console.** The conversation chain engine (`convtree.py` on task-console's `feat/convo-chain-panel` branch at f3ca433) moved here as the `convo_chain` package, behaviour unchanged: byte offset index with an in-process LRU cache, the shape gate, `locate`, `chain`, `node`, `export_md`, `fork` with exclusive create, and the resume command.
+- **Initial extraction from task-console.** The conversation chain engine (`convtree.py`, written on an unpublished task-console feature branch for its conversation chain panel) moved here as the `convo_chain` package, behaviour unchanged: byte offset index with an in-process LRU cache, the shape gate, `locate`, `chain`, `node`, `export_md`, `fork` with exclusive create, and the resume command.
 - **Its own error types.** `ConvoChainError` (with a stable `.code`) replaces task-console's `maint.Refused`, and `Unavailable` stays a separate class so "not checked" can never be caught as a refusal.
 - **The transcript rules, in one place.** `typed_text` and `looks_injected` moved here from task-console's `convos.py`, so the console and this library share one implementation instead of two.
-- **A CLI**, `convo-chain` (and `python -m convo_chain`): `chain`, `node`, `export` (with `--out` for a Markdown file) and `fork`, JSON on stdout, stable exit codes.
+- **A CLI**, `convo-chain` (and `python -m convo_chain`): `chain`, `node`, `export` (with `--out` for a Markdown file) and `fork`, JSON on stdout for every outcome, stable exit codes (`4` with code `internal` when something other than a refusal goes wrong, naming only the exception class). An explicit `--root`, even an empty one, is never replaced by `CONVO_CHAIN_ROOT`.
 - Repository scaffolding: the `guards/` and `style/` submodules, `.githooks` forwarders, the pii-guard, dash-guard, tests and fleet-sync workflows, `.dataclass.json` and `.pii-allow`.
 
 ### Changed
