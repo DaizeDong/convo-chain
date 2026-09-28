@@ -77,7 +77,7 @@ CLI 每次调用都重建索引。长期运行的调用方应该直接导入这�
 
 ## task-console 怎么用它
 
-下面说的是 task-console 里接入它的那次改动,那次改动还没进 task-console 的公开分支。task-console 把 `convo-chain` 当作钉住版本的库依赖,地位和 `fleet-guards`、`llmcall` 一样,并且在进程内导入,这样索引缓存活在控制台进程里。控制台留下的是一切跟「给浏览器服务」有关的东西:四条 HTTP 路由和它们的令牌、主机、形状闸,对话链面板和它的界面测试,以及 `TASK_CONSOLE_SESSIONS` 这个设置,它的值由控制台作为 `root` 传进来。这个仓只管转录语义,不管别的,也从不读任何 `TASK_CONSOLE_*` 变量。
+下面说的是 task-console 里接入它的那次改动,那次改动已经进了 task-console 的 `master`。task-console 把 `convo-chain` 当作钉住版本的库依赖,地位和 `fleet-guards`、`llmcall` 一样,并且在进程内导入,这样索引缓存活在控制台进程里。控制台留下的是一切跟「给浏览器服务」有关的东西:四条 HTTP 路由和它们的令牌、主机、形状闸,对话链面板和它的界面测试,以及 `TASK_CONSOLE_SESSIONS` 这个设置,它的值由控制台作为 `root` 传进来。这个仓只管转录语义,不管别的,也从不读任何 `TASK_CONSOLE_*` 变量。
 
 ## 数据放在哪
 
