@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "convo-chain"
-version = "0.1.0"
+version = "0.2.0"
 description = "Rebuild, export and fork the conversation a Claude Code session transcript actually held"
 readme = "README.md"
 requires-python = ">=3.11"

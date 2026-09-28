@@ -18,7 +18,7 @@ A transcript is not a list of messages, and walking `parentUuid` upward from the
 2. **A compaction boundary has `parentUuid: null`,** so a naive walk stops there and the whole history before it vanishes. Its `logicalParentUuid` often points at a line written after the boundary, so following it loops back. The predecessor is chosen by a three level rule, and the one level that is a guess is reported as a guess.
 3. **Preserved messages stay where they were written, before the boundary,** and only the boundary's `compactMetadata` links them into the new context. A fork relinks them the way Claude Code does at load time, so the forked file holds exactly the context the model saw at that node, nothing more.
 
-Two rules follow from "this reads real conversations". The library never guesses where transcripts live: the caller passes `root`, and without it the answer is "not checked", never a default directory. And there is exactly one write, `fork`, which creates a new file exclusively, never touches the source, and refuses outright when the target directory is inside any git work tree.
+The caller passes an explicit session `root`; the library never guesses a default directory. Fork creates a new file exclusively. Rename and move are explicit metadata and file operations with recovery journals. Writes are refused inside git worktrees.
 
 ## What it is (and isn't)
 
@@ -56,7 +56,7 @@ f = cc.fork(sid, at=uuid, leaf=None, root=root)   # writes <newId>.jsonl next to
 print(f["command"])                               # cd '<cwd>'; claude --resume <newId>
 ```
 
-Also exported: `locate`, `resume_command`, `clear_cache`, `CACHE_SLOTS`, and the transcript rules `typed_text(entry)` and `looks_injected(text)` that decide whether a user line is something a human actually typed.
+Also exported: `rename(sid, title, root=...)`, `move(sid, target_project, root=...)`, `project_info`, `recover_pending`, `locate`, `resume_command`, `clear_cache`, `CACHE_SLOTS`, and the transcript rules `typed_text(entry)` and `looks_injected(text)`.
 
 Errors come in two kinds that do not inherit from each other. `ConvoChainError` is a refused request and carries a stable `.code` (`bad_id`, `bad_sub`, `bad_leaf`, `bad_uuid`, `not_found`, `ambiguous`, `outside_root`, `not_on_path`, `bad_range`, `stale_index`, `exists`, `inside_repo`, `unrelinkable`, `empty_fork`, `no_sub_fork`, `unavailable`, and a few more). `Unavailable` means no usable root: `chain` and `node` return `{"available": false, "reason": ...}` for it, while `export_md` and `fork` raise `ConvoChainError` with code `unavailable`.
 
@@ -77,11 +77,20 @@ The CLI rebuilds the index on every call. A long lived caller should import the 
 
 ## How task-console consumes it
 
-This describes the task-console change that consumes it, which is on task-console's `master`. task-console depends on `convo-chain` as a pinned library, the same standing as `fleet-guards` and `llmcall`, and imports it in process so the index cache lives in the console process. The console keeps everything that is about serving a browser: the four HTTP routes with their token, host and shape gates, the conversation chain panel and its UI tests, and the `TASK_CONSOLE_SESSIONS` setting, whose value it passes in as `root`. This repository owns the transcript semantics and nothing else, and it never reads a `TASK_CONSOLE_*` variable.
+task-console imports `convo-chain` as a pinned library so the index cache lives in the console process. The console owns the HTTP routes, request checks and interface, and passes `TASK_CONSOLE_SESSIONS` as `root`. This library owns transcript semantics and file transactions; it never reads a `TASK_CONSOLE_*` variable.
 
 ## Where the data lives
 
 Nowhere in this repository. Transcripts stay under the root the caller passes. A fork is one new `<uuid>.jsonl` in the source transcript's own project directory. An export goes where `--out` says, or back to the caller in memory. The test suite builds every transcript synthetically inside pytest's temporary directory, and `.gitignore` excludes `*.jsonl` and `*.jsonl.gz` everywhere. `.dataclass.json` records how that was checked.
+
+Rename appends a native custom-title record and updates the native index. Move preserves transcript
+bytes and IDs, carries the whole sidecar tree, and updates both project indexes. It refuses active
+writers, destination collisions, links and cross-volume moves. Journals under the caller root's
+`.convo-chain-ops` directory allow `recover_pending(root)` to undo interrupted edits before the next
+mutation. Concurrent writers must be closed before moving a session; the root lock coordinates
+library clients, and file reservations plus before/after checks detect outside interference. An
+optional UUID `request_id` on `fork` lets a caller retry a lost response without creating another
+session. Project metadata determines the resume directory without rewriting historical cwd.
 
 ## Tests
 
@@ -93,7 +102,9 @@ The suite runs on `windows-latest` with Python 3.11 and 3.13 under a collected c
 
 ## Limitations
 
-The index is per file, so a session split across several transcript files is several sessions here. The fork's resume command assumes Claude Code's current project directory naming. The data boundary guard does not yet recognise the transcript file shape, so the ignore rules above are the stop gap until that lands upstream.
+The index is per file. Resume commands use explicit project metadata or a recorded directory that
+matches the storage folder. Missing metadata is reported. Windows file transactions use Windows
+10 or newer rename semantics; other platforms need an atomic rename-without-replacement primitive.
 
 ## Languages
 
