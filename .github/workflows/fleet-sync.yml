@@ -1,15 +1,11 @@
-# Not enrolled yet: this repository has no FLEET_SYNC_TOKEN secret and is not in either kit's
-# FLEET_SYNC_TARGETS, so the shared workflow would fail its first step on every run. The daily
-# `schedule:` trigger is left out until enrollment is done (fleet-guards docs/AUTOMATIC_SYNC.md,
-# "Enroll a consumer"); restore it in the same commit that records the manual sync run. Until then
-# the two submodule pins are advanced by hand, and a dispatch cannot arrive because no kit lists
-# this repository as a target.
 name: Sync fleet submodules
 
 on:
   repository_dispatch:
     types: [fleet-submodule-update]
   workflow_dispatch:
+  schedule:
+    - cron: '37 6 * * *'
 
 permissions:
   contents: write
