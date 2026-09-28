@@ -77,7 +77,7 @@ The CLI rebuilds the index on every call. A long lived caller should import the 
 
 ## How task-console consumes it
 
-This describes the task-console change that consumes it, which is not on task-console's published branches yet. task-console depends on `convo-chain` as a pinned library, the same standing as `fleet-guards` and `llmcall`, and imports it in process so the index cache lives in the console process. The console keeps everything that is about serving a browser: the four HTTP routes with their token, host and shape gates, the conversation chain panel and its UI tests, and the `TASK_CONSOLE_SESSIONS` setting, whose value it passes in as `root`. This repository owns the transcript semantics and nothing else, and it never reads a `TASK_CONSOLE_*` variable.
+This describes the task-console change that consumes it, which is on task-console's `master`. task-console depends on `convo-chain` as a pinned library, the same standing as `fleet-guards` and `llmcall`, and imports it in process so the index cache lives in the console process. The console keeps everything that is about serving a browser: the four HTTP routes with their token, host and shape gates, the conversation chain panel and its UI tests, and the `TASK_CONSOLE_SESSIONS` setting, whose value it passes in as `root`. This repository owns the transcript semantics and nothing else, and it never reads a `TASK_CONSOLE_*` variable.
 
 ## Where the data lives
 

@@ -1,8 +1,9 @@
 # --- conversation transcripts: NEVER commit (this tool reads and writes real ones) ---
 # Ignored EVERYWHERE, tests included. The suite builds every transcript inside pytest's tmp_path,
 # so no committed .jsonl is needed; allowing one under tests/ would only open a place where a
-# pasted real transcript could land. The guard's RUN_SHAPES does not yet recognise the transcript
-# shape (see .dataclass.json _armed), so this line is the stop-gap, not the control.
+# pasted real transcript could land. Since fleet-guards 2f1edb1 the guard's RUN_SHAPES recognises
+# the transcript shapes and blocks a tracked one (see .dataclass.json _armed); this line stays as
+# defence in depth, so an untracked transcript never shows up in `git status` to be added.
 *.jsonl
 *.jsonl.gz
 .fork-*.tmp

@@ -9,17 +9,18 @@
     "Enforced by guards/tools/data_boundary.py in .githooks and in CI."
   ],
   "_audited": "2026-09-27, at creation, by reading every write site in src/convo_chain. The library keeps no run data of its own and has no companion repo: its only persistent state is an in-process LRU index cache that never touches disk. There are exactly two writes. (1) fork() writes ONE new <uuid>.jsonl into the project directory of the source transcript, under the session root the CALLER passes as an absolute path; a relative root is refused (Unavailable), the library reads no environment variable, and the write is refused with code inside_repo when that directory or any parent holds .git, so a fork can never become a file of this or any other work tree. (2) The CLI's `export --out FILE` writes the Markdown the operator asked for, exclusive create, and refuses the same inside_repo case. Nothing is written relative to this repo, there is no in-repo fallback, and the test suite builds every transcript synthetically inside pytest's tmp_path, so no FIXTURE file is committed either. The empty lists below are therefore a finding, not a default.",
-  "_armed": "The empty lists are re-tested on every commit: data_boundary check 4 runs off the TRACKED FILE LIST, so a file wearing the shape of real-run output fails whether or not it is declared here. KNOWN GAP, stated rather than hidden: at the pinned guards commit, RUN_SHAPES recognises none of the names this tool actually writes (a UUID-named <session>.jsonl or .jsonl.gz, subagents/agent-*.jsonl, the .fork-*.tmp staging name, an exported .md). Measured 2026-09-27 with `data_boundary.py --explain`: 1 of 6 schematic names matched, and only the generic transcript.jsonl ledger name. A probe that misses is a blocking PROBE-MISS, so listing the real names in _run_shape_probes would block every commit, and listing only the one name that happens to match would claim a calibration that never happened. So _run_shape_probes stays EMPTY (reported as NOT CALIBRATED under --calibration, which is the true state) and the schematic names wait in _run_shape_probes_pending until a transcript shape lands upstream in fleet-guards; then they move over verbatim. Until then .gitignore excludes *.jsonl, *.jsonl.gz and .fork-*.tmp everywhere in this repo as the stop-gap.",
+  "_armed": "The empty lists are re-tested on every commit: data_boundary check 4 runs off the TRACKED FILE LIST, so a file wearing the shape of real-run output fails whether or not it is declared here. Calibration: until fleet-guards 2f1edb1 the shared RUN_SHAPES recognised none of the names this tool writes (measured 2026-09-27 with `data_boundary.py --explain`: 1 of 6 schematic names matched, and only the generic transcript.jsonl ledger name), so the probes waited in _run_shape_probes_pending. That commit added the Claude Code transcript shapes (a <uuid>.jsonl or .jsonl.gz session file and its .fork-<uuid>.tmp staging copy, subagents/**/agent-<id>.jsonl, a <uuid>/ sidecar directory, an encoded project directory), and the five names below now all match, so they moved into _run_shape_probes verbatim and `--calibration` reports this repo calibrated. One name stays pending on purpose: an exported Markdown file carries no shape that separates it from documentation, and a shared shape broad enough to catch it would redden every README in the fleet. The export is refused inside any git work tree (code inside_repo), and .gitignore still excludes *.jsonl, *.jsonl.gz, .fork-*.tmp and exports/ as defence in depth.",
   "data": [],
   "data_sealed": [],
   "fixture": [],
-  "_run_shape_probes": [],
-  "_run_shape_probes_pending": [
+  "_run_shape_probes": [
     "C--Users-example-proj/00000000-0000-4000-8000-000000000000.jsonl",
     "C--Users-example-proj/00000000-0000-4000-8000-000000000000/subagents/agent-a0example.jsonl",
     "C--Users-example-proj/00000000-0000-4000-8000-000000000000/subagents/workflows/wf-example/agent-a0example.jsonl.gz",
     "C--Users-example-proj/.fork-00000000-0000-4000-8000-000000000000.tmp",
-    "example-session-00000000-00000000.md",
     "exports/transcript.jsonl"
+  ],
+  "_run_shape_probes_pending": [
+    "example-session-00000000-00000000.md"
   ]
 }

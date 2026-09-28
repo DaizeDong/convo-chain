@@ -12,8 +12,8 @@ Feature names only. Why each one behaves the way it does lives in the docstrings
 - `export_md`: a Markdown export of any range on the chain, capped and saying where it stopped.
 - `fork`: a new session file holding exactly the context the model saw at a node, relinked the way Claude Code loads a compacted session, created exclusively and never inside a git work tree.
 - The `convo-chain` CLI over the same four operations.
+- Calibrated against the shared data boundary guard: the transcript names this tool writes are declared as run-shape probes and every one is recognised.
 
 ## Planned
 
-- **A transcript shape in the shared data boundary guard.** The guard does not recognise a UUID named `.jsonl` or `subagents/agent-*.jsonl` yet, so this repo relies on its ignore rules. The shape belongs upstream in fleet-guards, after which the probes in `.dataclass.json` stop reporting a miss.
 - **A session split across files.** A resumed session can continue in a new transcript file; following that link would let `chain` show the whole conversation instead of one file of it.
