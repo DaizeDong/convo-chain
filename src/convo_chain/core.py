@@ -24,7 +24,7 @@
 它读的根目录只有一个:调用方传进来的 `root`。库自己不读任何环境变量,没给就是「未检查」
 (`Unavailable`),不猜默认位置。
 客户端给的只有会话 id 和节点 uuid,两者都先按形状拒绝,才碰文件系统。
-写只有一处(`fork`),写的是一份**新**文件,独占创建,源文件只以只读方式打开。
+这里的 `fork` 只创建新文件；会话迁移和重命名由 session_ops 的事务接口负责。
 """
 
 from __future__ import annotations
@@ -928,6 +928,13 @@ def chain(sid, leaf=None, sub=None, root=None) -> dict:
     base.update(cwd=lk["cwd"], leaf=lk["u"], leafIsDefault=is_default, pathLen=len(order),
                 turns=turns, compactions=ncomp, forks=nforks, subagents=subs,
                 subagentMetaUnreadable=subs_bad, warnings=warnings)
+    from .session_ops import project_info
+    try:
+        info = project_info(loc["projectDir"], root=loc["base"], candidates=[e["cwd"] for e in E])
+        base.update(storagePath=info["storagePath"], storageCwd=info["cwd"],
+                    locationInferred=info["locationInferred"])
+    except ConvoChainError as error:
+        warnings.append(str(error))
     return base
 
 
@@ -1366,9 +1373,11 @@ def _dump(o) -> str:
     return json.dumps(o, ensure_ascii=False, separators=(",", ":"))
 
 
-def fork(sid, at, leaf=None, sub=None, root=None) -> dict:
+def fork(sid, at, leaf=None, sub=None, root=None, request_id=None) -> dict:
     """在节点 at 处分叉出一个新会话文件。只写一份新文件,源文件只读。"""
     shape(sid, sub=sub, leaf=leaf, required=("at",), at=at)
+    if request_id is not None:
+        _check_uuid(request_id, "请求")
     if sub:
         raise ConvoChainError("子代理的转录不能分叉成会话", "no_sub_fork")
     try:
@@ -1385,7 +1394,22 @@ def fork(sid, at, leaf=None, sub=None, root=None) -> dict:
     raws = _read_lines(ix, ks)
     kept_pres = [E[k]["u"] for k in pres_used]
 
-    new = str(_uuid.uuid4())
+    new = str(_uuid.uuid5(_uuid.NAMESPACE_URL, json.dumps(
+        [str(loc["base"].resolve()), sid, at, leaf, request_id]))) if request_id else str(_uuid.uuid4())
+    if request_id:
+        try:
+            existing = locate(new, root=root)
+        except ConvoChainError as error:
+            if error.code != "not_found":
+                raise
+        else:
+            from .session_ops import _location_result
+            saved = chain(new, root=root)
+            result = _location_result(new, existing["projectDir"], existing["base"].resolve())
+            result.update(newId=new, reused=True, title=saved["title"], lines=saved["lines"],
+                          emitted=saved["chainEntries"], approxTokens=saved["bytes"] // 4,
+                          leafUuid=saved.get("leaf"), fromBoundary=None)
+            return result
     lines, prev, emitted_bytes, last_ua = [], None, 0, None
     for k in ks:
         o = _obj(raws[k], E[k]["u"])
@@ -1436,7 +1460,9 @@ def fork(sid, at, leaf=None, sub=None, root=None) -> dict:
         warnings.append(f"分叉里没有压缩边界而且有 {emitted_bytes // 1024} KB,"
                         "大概率超出模型上下文")
     d = loc["main"].parent
-    cwd = _resume_cwd(ix, ks, atk, d.name, warnings)
+    from .session_ops import project_info
+    info = project_info(d, root=loc["base"], candidates=[e["cwd"] for e in E])
+    cwd = info["cwd"] if not info["locationInferred"] else _resume_cwd(ix, ks, atk, d.name, warnings)
     repo = _enclosing_worktree(d)
     if repo is not None:
         raise ConvoChainError(f"会话目录在一个 git 工作树里({repo}),分叉写出的是真实对话内容,"
@@ -1451,17 +1477,10 @@ def fork(sid, at, leaf=None, sub=None, root=None) -> dict:
             fh.flush()
             os.fsync(fh.fileno())
         try:
-            # 硬链接 = 带着完整内容的独占创建:目标已存在就失败,不存在就一步到位。
-            os.link(tmp, target)
+            from .transactions import rename_no_replace
+            rename_no_replace(tmp, target)
         except FileExistsError:
             raise ConvoChainError("目标会话文件已存在,拒绝覆盖", "exists")
-        except OSError:
-            # 卷不支持硬链接时退到独占创建:仍然是「已存在就失败」,只是不再原子。
-            try:
-                with open(target, "xb") as fh:
-                    fh.write(data)
-            except FileExistsError:
-                raise ConvoChainError("目标会话文件已存在,拒绝覆盖", "exists")
     finally:
         try:
             tmp.unlink()
@@ -1472,6 +1491,7 @@ def fork(sid, at, leaf=None, sub=None, root=None) -> dict:
             # 名字不以 .jsonl 结尾,所以它不会被当成一个会话列出来。
             warnings.append(f"临时文件没删掉({type(e).__name__}),请手动删除: {tmp}")
     return {"newId": new, "file": str(target), "cwd": cwd, "lines": len(lines),
+            "projectDir": d.name, "storagePath": str(d), "title": f"{title} (fork @ {at[:8]})",
             "emitted": len(ks), "leafUuid": last_ua,
             "fromBoundary": E[endb]["u"] if endb is not None else None,
             "approxTokens": emitted_bytes // 4,
