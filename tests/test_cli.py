@@ -230,4 +230,5 @@ def test_module_entry_point_emits_utf8_json(tmp_path):
     assert out["turns"][0]["human"]["preview"] == "合成的问题 \u00e9"
     v = subprocess.run([sys.executable, "-B", "-m", "convo_chain", "--version"],
                        capture_output=True, env=env, timeout=60)
-    assert v.returncode == 0 and v.stdout.decode().strip() == "convo-chain 0.1.0"
+    from convo_chain import __version__
+    assert v.returncode == 0 and v.stdout.decode().strip() == f"convo-chain {__version__}"
