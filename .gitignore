@@ -7,6 +7,8 @@
 *.jsonl
 *.jsonl.gz
 .fork-*.tmp
+.convo-chain-ops/
+sessions-index.json
 exports/
 
 # --- secrets / DB: NEVER commit ---
