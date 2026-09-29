@@ -4,6 +4,10 @@ All notable changes to this project are documented here (Keep a Changelog style)
 
 ## [Unreleased]
 
+### Added
+
+- Preview-bound permanent session deletion, including sidecars and native index entries, with interrupted-operation recovery and request replay receipts.
+
 ### Changed
 
 - **The transcript probes are calibrated.** fleet-guards 2f1edb1 taught the shared data boundary guard the Claude Code transcript shapes, so the `guards/` pin moved to it and the five transcript probes left `_run_shape_probes_pending` for `_run_shape_probes`; `data_boundary.py --calibration` now reports this repository calibrated. The exported Markdown name stays pending, because no shape separates it from documentation. The `.gitignore` rules for transcripts remain as defence in depth.

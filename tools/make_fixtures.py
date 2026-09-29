@@ -30,3 +30,13 @@ def write_index(project, sid=SID, cwd="C:/Acme/source"):
     path = Path(project) / "sessions-index.json"
     path.write_text(json.dumps(obj), encoding="utf-8")
     return path
+
+
+def write_sidecars(project, sid=SID):
+    """A nested payload used to exercise bounded cleanup and interrupted deletion."""
+    folder = Path(project) / sid
+    for name in ("subagents/agent-example.jsonl", "notes/example.txt"):
+        path = folder / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("Synthetic associated content\n", encoding="utf-8")
+    return folder
