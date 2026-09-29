@@ -29,12 +29,14 @@ from .core import (CACHE_SLOTS, chain, clear_cache, export_md, fork, locate, nod
                    resume_command, shape)
 from .errors import ConvoChainError, Unavailable
 from .session_ops import move, rename, project_info, recover_pending
+from .deletion import delete, delete_plan
 from .transcript import looks_injected, typed_text
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "CACHE_SLOTS", "ConvoChainError", "Unavailable", "__version__", "chain", "clear_cache",
     "export_md", "fork", "locate", "looks_injected", "node", "resume_command", "shape",
     "typed_text", "move", "rename", "project_info", "recover_pending",
+    "delete", "delete_plan",
 ]

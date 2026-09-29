@@ -56,7 +56,7 @@ f = cc.fork(sid, at=uuid, leaf=None, root=root)   # writes <newId>.jsonl next to
 print(f["command"])                               # cd '<cwd>'; claude --resume <newId>
 ```
 
-Also exported: `rename(sid, title, root=...)`, `move(sid, target_project, root=...)`, `project_info`, `recover_pending`, `locate`, `resume_command`, `clear_cache`, `CACHE_SLOTS`, and the transcript rules `typed_text(entry)` and `looks_injected(text)`.
+Also exported: `rename(sid, title, root=...)`, `move(sid, target_project, root=...)`, `delete_plan`, `delete`, `project_info`, `recover_pending`, `locate`, `resume_command`, `clear_cache`, `CACHE_SLOTS`, and the transcript rules `typed_text(entry)` and `looks_injected(text)`.
 
 Errors come in two kinds that do not inherit from each other. `ConvoChainError` is a refused request and carries a stable `.code` (`bad_id`, `bad_sub`, `bad_leaf`, `bad_uuid`, `not_found`, `ambiguous`, `outside_root`, `not_on_path`, `bad_range`, `stale_index`, `exists`, `inside_repo`, `unrelinkable`, `empty_fork`, `no_sub_fork`, `unavailable`, and a few more). `Unavailable` means no usable root: `chain` and `node` return `{"available": false, "reason": ...}` for it, while `export_md` and `fork` raise `ConvoChainError` with code `unavailable`.
 
@@ -91,6 +91,14 @@ mutation. Concurrent writers must be closed before moving a session; the root lo
 library clients, and file reservations plus before/after checks detect outside interference. An
 optional UUID `request_id` on `fork` lets a caller retry a lost response without creating another
 session. Project metadata determines the resume directory without rewriting historical cwd.
+
+`delete_plan(sid, root=..., expected_project=...)` reports the file count, bytes and native index
+entries covered by a deletion. After confirming that scope, call `delete` with the same session,
+project, plan `fingerprint` and a UUID `request_id`. It permanently removes the transcript and
+its sidecar tree, retaining the project directory and other sessions. A changed preview is refused;
+request retries reuse a receipt and cannot delete a recreated session. Interrupted operations roll
+back before commit and resume file cleanup after commit. `cleanup_pending` means some committed
+files still need cleanup; retry the same request. These two operations are library APIs only.
 
 ## Tests
 

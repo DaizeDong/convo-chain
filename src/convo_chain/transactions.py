@@ -280,8 +280,14 @@ def recover_one(base, journal_path, rename=rename_no_replace):
         raise ConvoChainError("恢复记录过大，需要先检查", "recovery_conflict")
     try:
         data = json.loads(journal_path.read_text(encoding="utf-8"))
-        if data["version"] != 1 or data["kind"] not in ("move", "rename"):
+        if data["version"] != 1 or data["kind"] not in ("move", "rename", "delete"):
             raise ValueError("unknown transaction")
+        if data["kind"] == "delete":
+            if data["status"] != "committed":
+                raise ValueError("uncommitted deletion")
+            from .deletion import finish_committed
+            finish_committed(base, journal_path, data)
+            return
         if data["status"] == "committed":
             journal_path.unlink()
             return
