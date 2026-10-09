@@ -47,7 +47,9 @@ jobs:
           python -m pip install --quiet build
           python -m build --wheel --outdir dist .
           $whl = Get-ChildItem dist/*.whl | Select-Object -First 1
-          if ($whl.Name -notmatch '^convo_chain-0\.1\.0-py3-none-any\.whl$') { Write-Error "unexpected wheel name $($whl.Name)"; exit 1 }
+          $expectedWheel = python -B -c "import pathlib, tomllib; from packaging.utils import canonicalize_name; from packaging.version import Version; project = tomllib.loads(pathlib.Path('pyproject.toml').read_text(encoding='utf-8'))['project']; print(canonicalize_name(project['name']).replace('-', '_') + '-' + str(Version(project['version'])) + '-py3-none-any.whl')"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if ($whl.Name -cne $expectedWheel) { Write-Error "unexpected wheel name $($whl.Name), expected $expectedWheel"; exit 1 }
           python -m pip install --quiet $whl.FullName
           Push-Location $env:RUNNER_TEMP
           python -B -c "import convo_chain, sys; assert 'site-packages' in convo_chain.__file__, convo_chain.__file__; print(convo_chain.__version__)"
