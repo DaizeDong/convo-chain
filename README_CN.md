@@ -1,18 +1,18 @@
 # convo-chain
 
-把一份 Claude Code 会话转录还原成「真正发生过的那条对话」,再把其中任意一段导出成 Markdown,或者从任意节点分叉出一个新会话。
+从 Claude Code 转录重建对话，将选定范围导出为 Markdown，或从选定节点的上下文分叉出新会话。
 
 [![Python Library](https://img.shields.io/badge/Python-Library%20%2B%20CLI-orange?style=flat)](src/convo_chain/__init__.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-green?style=flat)](pyproject.toml)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%2F%20CN-blue?style=flat)](#语言)
-[![Roadmap](https://img.shields.io/badge/Roadmap-v0.1.0-purple?style=flat)](ROADMAP.md)
+[![Roadmap](https://img.shields.io/badge/Roadmap-v0.3.0-purple?style=flat)](ROADMAP.md)
 
 [English](README.md) | [中文版](README_CN.md)
 
-## ⭐ 先读这个:设计思路
+## 设计理念
 
-转录不是一串消息。从最后一行沿 `parentUuid` 往上走,得到的也不是那场对话。有三种形状会让朴素的上溯走错,每一种都是先在真实转录上量到,才写的代码:
+重建对话需要处理原调查在转录中观测到的三种结构，单独沿 `parentUuid` 上溯无法完整处理：
 
 1. **一次助手回复按内容块拆成好几行。** 并行工具调用会让一个节点看上去有两个孩子(同一 `message.id` 的下一块,和第一块的工具结果)。那是一次回复,不是分支。这个库按 `message.id` 把回复归组,并给每个 `tool_use` 配上恰好一个结果。
 2. **压缩边界那一行的 `parentUuid` 是 null,** 朴素上溯走到这里就停了,前面整段历史不在链上。它的 `logicalParentUuid` 常常指向边界之后写下的行,照着走会绕回来。前驱按三级规则选,其中唯一靠猜的那一级会明说是猜的。
@@ -20,11 +20,11 @@
 
 会话根目录由调用方显式传入 `root`，库没有默认目录。分叉会独占创建新文件；重命名和迁移则通过带恢复记录的文件事务执行。写入位置位于 git 工作树内时会拒绝操作。
 
-## 它是什么(不是什么)
+## 适用范围
 
-它是一个纯 Python 库(零依赖)加一个小 CLI。它按字节偏移给转录建索引,内存里每行只留一条瘦记录,要看哪一行再按偏移读回来。所以几百兆的转录,建索引走一遍,之后浏览几乎不花钱。进程里有一个 LRU 缓存,留最近三份索引,按路径、mtime 和大小做键。
+零依赖 Python 库和 CLI 通过一次扫描建立字节偏移索引。内存中每行只保留紧凑记录，完整内容按需读取，避免每次浏览都完整加载数百 MB 的转录。进程内 LRU 缓存保留三份索引，以路径、mtime 和大小为键。
 
-它不是转录查看器,没有界面。这套引擎是从正在给 [task-console](https://github.com/DaizeDong/task-console) 做的对话链面板里拆出来的,那个面板就是它预定的使用方。它也不列会话清单,它回答的是「这一场会话里到底有什么」。
+这套引擎为 [task-console](https://github.com/DaizeDong/task-console) 的对话面板提取，按单个会话工作；会话列表和用户界面由调用方负责。
 
 ## 安装
 
@@ -56,7 +56,7 @@ f = cc.fork(sid, at=uuid, leaf=None, root=root)   # 在源文件旁边写一份 
 print(f["command"])                               # cd '<cwd>'; claude --resume <newId>
 ```
 
-另外公开的还有:`locate`、`resume_command`、`clear_cache`、`CACHE_SLOTS`,以及两条转录规则 `typed_text(entry)` 和 `looks_injected(text)`,它们判断一条用户记录是不是人真的打进去的字。
+另提供 `rename(sid, title, root=...)`、`move(sid, target_project, root=...)`、`delete_plan`、`delete`、`project_info`、`recover_pending`、`locate`、`resume_command`、`clear_cache`、`CACHE_SLOTS`，以及转录规则 `typed_text(entry)` 和 `looks_injected(text)`。
 
 错误分两种,互不继承。`ConvoChainError` 是请求被拒,带一个稳定的 `.code`(`bad_id`、`bad_sub`、`bad_leaf`、`bad_uuid`、`not_found`、`ambiguous`、`outside_root`、`not_on_path`、`bad_range`、`stale_index`、`exists`、`inside_repo`、`unrelinkable`、`empty_fork`、`no_sub_fork`、`unavailable` 等)。`Unavailable` 是没有可用的根目录:`chain` 和 `node` 遇到它返回 `{"available": false, "reason": ...}`,`export_md` 和 `fork` 则抛 code 为 `unavailable` 的 `ConvoChainError`。
 
@@ -81,7 +81,9 @@ task-console 把 `convo-chain` 作为固定版本的库在进程内导入，让�
 
 ## 数据放在哪
 
-不在这个仓里。转录留在调用方传入的根目录下。分叉是在源转录自己的项目目录里新建一份 `<uuid>.jsonl`。导出写到 `--out` 指定的地方,或者在内存里交还调用方。测试用的每一份转录都是在 pytest 的临时目录里现造的合成数据,`.gitignore` 在全仓范围排除 `*.jsonl` 和 `*.jsonl.gz`。怎么核对的,写在 `.dataclass.json` 里。
+转录留在调用方传入的仓外根目录下。分叉是在源转录自己的项目目录里新建一份 `<uuid>.jsonl`。导出写到 `--out` 指定的地方,或者在内存里交还调用方。测试用的每一份转录都是在 pytest 的临时目录里现造的合成数据,`.gitignore` 在全仓范围排除 `*.jsonl` 和 `*.jsonl.gz`。怎么核对的,写在 `.dataclass.json` 里。
+
+## 会话操作与恢复
 
 `rename(sid, title, root=...)` 追加原生标题记录并更新索引；`move(sid, target_project, root=...)`
 保留转录字节和会话 ID，迁移完整子目录并更新两边索引。目标必须是根目录内已有的项目目录。

@@ -4,14 +4,19 @@ All notable changes to this project are documented here (Keep a Changelog style)
 
 ## [Unreleased]
 
-### Added
-
-- Preview-bound permanent session deletion, including sidecars and native index entries, with interrupted-operation recovery and request replay receipts.
-
 ### Changed
 
 - **The transcript probes are calibrated.** fleet-guards 2f1edb1 taught the shared data boundary guard the Claude Code transcript shapes, so the `guards/` pin moved to it and the five transcript probes left `_run_shape_probes_pending` for `_run_shape_probes`; `data_boundary.py --calibration` now reports this repository calibrated. The exported Markdown name stays pending, because no shape separates it from documentation. The `.gitignore` rules for transcripts remain as defence in depth.
 - **Enrolled in fleet sync.** The repository now has its `FLEET_SYNC_TOKEN` and is listed in both kits' subscriber lists, so `fleet-sync.yml` is back to the shared template, daily `schedule:` included, and the `guards/` and `style/` pins advance through the verified sync workflow instead of by hand.
+
+## [0.3.0]
+
+The current package and `__version__` declare 0.3.0. No release date is recorded here; the implementation commits do not establish a publication date.
+
+### Added
+
+- Preview-bound permanent session deletion, including sidecars and native index entries, with interrupted-operation recovery and request replay receipts.
+- Transactional rename and move, project metadata for resume directories, and optional request identity for retrying a fork. These capabilities were added after the documented 0.1.0 baseline.
 
 ## [0.1.0] - 2026-09-27
 

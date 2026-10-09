@@ -1,18 +1,18 @@
 # convo-chain
 
-Rebuild the conversation a Claude Code session transcript actually held, then export any stretch of it to Markdown or fork a new session from any node.
+Reconstruct a Claude Code conversation from its transcript, export a selected range to Markdown, or fork the context at a selected node.
 
 [![Python Library](https://img.shields.io/badge/Python-Library%20%2B%20CLI-orange?style=flat)](src/convo_chain/__init__.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-green?style=flat)](pyproject.toml)
 [![Languages](https://img.shields.io/badge/Languages-EN%20%2F%20CN-blue?style=flat)](#languages)
-[![Roadmap](https://img.shields.io/badge/Roadmap-v0.1.0-purple?style=flat)](ROADMAP.md)
+[![Roadmap](https://img.shields.io/badge/Roadmap-v0.3.0-purple?style=flat)](ROADMAP.md)
 
 [English](README.md) | [中文版](README_CN.md)
 
-## ⭐ Read this first, the design philosophy
+## Design philosophy
 
-A transcript is not a list of messages, and walking `parentUuid` upward from the last line does not give you the conversation. Three shapes break the naive walk, and each one was measured on real transcripts before the code was written:
+Conversation reconstruction must account for three transcript structures observed during the original investigation; following only `parentUuid` does not handle them:
 
 1. **One assistant reply is split into one line per content block.** Parallel tool calls make a node look like it has two children (the next block of the same `message.id`, and the first block's tool result). That is one reply, not a branch. This library groups replies by `message.id` and pairs every `tool_use` with exactly one result.
 2. **A compaction boundary has `parentUuid: null`,** so a naive walk stops there and the whole history before it vanishes. Its `logicalParentUuid` often points at a line written after the boundary, so following it loops back. The predecessor is chosen by a three level rule, and the one level that is a guess is reported as a guess.
@@ -20,11 +20,11 @@ A transcript is not a list of messages, and walking `parentUuid` upward from the
 
 The caller passes an explicit session `root`; the library never guesses a default directory. Fork creates a new file exclusively. Rename and move are explicit metadata and file operations with recovery journals. Writes are refused inside git worktrees.
 
-## What it is (and isn't)
+## Scope
 
-It is a pure Python library (no dependencies) plus a small CLI. It indexes a transcript by byte offsets, keeps only a slim record per line in memory, and reads full lines back on demand, so a transcript of several hundred megabytes costs one pass to index and very little to browse. A process keeps an LRU cache of the last three indexes, keyed on path, mtime and size.
+The dependency-free Python library and CLI index each transcript in one pass using byte offsets. Memory holds a compact record per line; full content is read on demand. This avoids loading a several-hundred-megabyte transcript in full for each browse operation. An in-process LRU cache holds three indexes, keyed by path, mtime and size.
 
-It is not a transcript viewer and it has no UI. The engine was extracted from a conversation chain panel being built for [task-console](https://github.com/DaizeDong/task-console), and that panel is its intended consumer. It does not list sessions either; it answers "what did this one session hold".
+The engine was extracted for the conversation panel in [task-console](https://github.com/DaizeDong/task-console). It operates on one session at a time; session listing and the user interface belong to the caller.
 
 ## Install
 
@@ -81,10 +81,12 @@ task-console imports `convo-chain` as a pinned library so the index cache lives 
 
 ## Where the data lives
 
-Nowhere in this repository. Transcripts stay under the root the caller passes. A fork is one new `<uuid>.jsonl` in the source transcript's own project directory. An export goes where `--out` says, or back to the caller in memory. The test suite builds every transcript synthetically inside pytest's temporary directory, and `.gitignore` excludes `*.jsonl` and `*.jsonl.gz` everywhere. `.dataclass.json` records how that was checked.
+Transcripts stay under the caller-provided root, outside this repository. A fork is one new `<uuid>.jsonl` in the source transcript's own project directory. An export goes where `--out` says, or back to the caller in memory. The test suite builds every transcript synthetically inside pytest's temporary directory, and `.gitignore` excludes `*.jsonl` and `*.jsonl.gz` everywhere. `.dataclass.json` records how that was checked.
+
+## Session operations and recovery
 
 Rename appends a native custom-title record and updates the native index. Move preserves transcript
-bytes and IDs, carries the whole sidecar tree, and updates both project indexes. It refuses active
+bytes and IDs, carries the whole sidecar tree, and updates both project indexes. The target must be an existing project directory under the same root. It refuses active
 writers, destination collisions, links and cross-volume moves. Journals under the caller root's
 `.convo-chain-ops` directory allow `recover_pending(root)` to undo interrupted edits before the next
 mutation. Concurrent writers must be closed before moving a session; the root lock coordinates

@@ -1,10 +1,10 @@
 # Roadmap
 
-Current: **v0.1.0**
+Current: **v0.3.0**
 
-## v0.1.0 (current)
+## v0.3.0 (current)
 
-Feature names only. Why each one behaves the way it does lives in the docstrings of `src/convo_chain/core.py`, and what changed lives in `CHANGELOG.md`.
+Design details are documented in the source and [README.md](README.md); released changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 - A byte offset index of one transcript, with parallel tool replies grouped by `message.id`, compaction boundaries crossed by a three level predecessor rule, and an in-process LRU cache of three indexes.
 - `chain`: the display chain cut into turns, with real forks separated from parallel tool pseudo forks.
@@ -13,6 +13,10 @@ Feature names only. Why each one behaves the way it does lives in the docstrings
 - `fork`: a new session file holding exactly the context the model saw at a node, relinked the way Claude Code loads a compacted session, created exclusively and never inside a git work tree.
 - The `convo-chain` CLI over the same four operations.
 - Calibrated against the shared data boundary guard: the transcript names this tool writes are declared as run-shape probes and every one is recognised.
+
+- Rename and move with native index updates, sidecar preservation and recovery journals.
+- Preview-bound permanent deletion with request receipts and interrupted-operation recovery.
+- Project metadata for resume directories and idempotent `fork` requests.
 
 ## Planned
 
