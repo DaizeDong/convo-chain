@@ -31,6 +31,3 @@ include-package-data = false
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["convo_chain", "convo_chain.*"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

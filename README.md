@@ -81,7 +81,7 @@ task-console imports `convo-chain` as a pinned library so the index cache lives 
 
 ## Where the data lives
 
-Transcripts stay under the caller-provided root, outside this repository. A fork is one new `<uuid>.jsonl` in the source transcript's own project directory. An export goes where `--out` says, or back to the caller in memory. The test suite builds every transcript synthetically inside pytest's temporary directory, and `.gitignore` excludes `*.jsonl` and `*.jsonl.gz` everywhere. `.dataclass.json` records how that was checked.
+Transcripts stay under the caller-provided root, outside this repository. A fork is one new `<uuid>.jsonl` in the source transcript's own project directory. An export goes where `--out` says, or back to the caller in memory. `.gitignore` excludes `*.jsonl` and `*.jsonl.gz` everywhere. `.dataclass.json` records how that was checked.
 
 ## Session operations and recovery
 
@@ -101,14 +101,6 @@ its sidecar tree, retaining the project directory and other sessions. A changed 
 request retries reuse a receipt and cannot delete a recreated session. Interrupted operations roll
 back before commit and resume file cleanup after commit. `cleanup_pending` means some committed
 files still need cleanup; retry the same request. These two operations are library APIs only.
-
-## Tests
-
-```
-python -B -m pytest tests/ -q -p no:cacheprovider
-```
-
-The suite runs on `windows-latest` with Python 3.11 and 3.13 under a collected count floor, and the key guards (the shape gate, the no environment rule, exclusive create, the work tree refusal, the injected message rule) were each poisoned once to confirm a test turns red.
 
 ## Limitations
 
